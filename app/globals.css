@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  background-color: #F8F0DE;
+  color: #2A1B12;
+}
+
+.temple-card {
+  background: #fffdf8;
+  border: 1px solid #E4D4AE;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+}
+
+.temple-card::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 8px;
+  background: #B8862B;
+  border-radius: 40px 40px 0 0;
+  opacity: 0.6;
+}
+
+.status-pending { background: #F3E4B8; color: #7A5A10; }
+.status-in_progress { background: #DCE7E0; color: #234D35; }
+.status-done { background: #DCEEDD; color: #1E6B33; }
+.status-blocked { background: #F3D9D4; color: #A63A2D; }
+
+.rsvp-pending { background: #F3E4B8; color: #7A5A10; }
+.rsvp-confirmed { background: #DCEEDD; color: #1E6B33; }
+.rsvp-declined { background: #F3D9D4; color: #A63A2D; }
+
+.vendor-enquired { background: #EFE7D8; color: #6b5a3a; }
+.vendor-shortlisted { background: #F3E4B8; color: #7A5A10; }
+.vendor-booked { background: #DCE7E0; color: #234D35; }
+.vendor-paid { background: #DCEEDD; color: #1E6B33; }
+.vendor-cancelled { background: #F3D9D4; color: #A63A2D; }
