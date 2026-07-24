@@ -39,7 +39,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (session === undefined) {
-    return <div className="min-h-screen flex items-center justify-center text-ink/60">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-ink/60">Loading...</div>;
   }
 
   if (!session) {
@@ -68,7 +68,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </div>
-    );
+    ));
   }
 
   return (
@@ -76,8 +76,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       <header className="bg-maroon text-paper sticky top-0 z-20">
         <div className="flex items-center justify-between px-4 py-3">
           <span className="font-serif text-xl tracking-wide">Wedding Planner</span>
-          <button onClick={() => setNavOpen(!navOpen)} className="text-2xl leading-none" aria-label="Menu">
-            {navOpen ? '×' : '☰'}
+          <button onClick={() => setNavOpen(!navOpen)} className="text-sm font-semibold" aria-label="Menu">
+            {navOpen ? 'Close' : 'Menu'}
           </button>
         </div>
         {navOpen && (
@@ -87,7 +87,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setNavOpen(false)}
-                className={`px-3 py-2 rounded text-sm ${pathname === item.href ? 'bg-goldlight/30 font-semibold' : 'hover:bg-white/10'}`}
+                className={"px-3 py-2 rounded text-sm " + (pathname === item.href ? "bg-goldlight/30 font-semibold" : "hover:bg-white/10")}
               >
                 {item.label}
               </Link>
@@ -106,4 +106,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           <Link
             key={item.href}
             href={item.href}
-            className={`px-3 py-1.5 rounded text-sm whitespac
+            className={"px-3 py-1.5 rounded text-sm whitespace-nowrap " + (pathname === item.href ? "bg-maroon text-paper" : "text-ink/70 hover:bg-maroon/10")}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+      <main className="px-4 py-5 max-w-5xl mx-auto">{children}</main>
+    </div>
+  );
+}
