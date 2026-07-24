@@ -1,7 +1,17 @@
-export default function Badge({ value, prefix = '' }: { value: string; prefix?: string }) {
-  return (
-    <span className={`${prefix}${value} inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize`}>
-      {value.replace('_', ' ')}
-    </span>
-  );
-                     }
+export interface BudgetItem {
+  id: string;
+  category: string;
+  vendor: string;
+  item: string;
+  estimated_cost: number;
+  actual_cost?: number;
+  status: string;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  category: string;
+  phone?: string;
+  email?: string;
+}
