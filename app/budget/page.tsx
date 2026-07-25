@@ -6,15 +6,18 @@ import { BudgetItem, Vendor } from '@/lib/types';
 
 const CATEGORIES = ['Venue', 'Catering', 'Decoration', 'Photography', 'Priest', 'Music/DJ', 'Attire', 'Jewelry', 'Invitations', 'Transport', 'Gifts', 'Other'];
 
+const emptyForm = {
+  category: CATEGORIES[0], item_name: '', estimated_cost: '', actual_cost: '', paid_amount: '', vendor_id: '', notes: '',
+};
+
 export default function BudgetPage() {
   const supabase = createClient();
   const [items, setItems] = useState<BudgetItem[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    category: CATEGORIES[0], item_name: '', estimated_cost: '', actual_cost: '', paid_amount: '', vendor_id: '', notes: '',
-  });
+  const [form, setForm] = useState(emptyForm);
 
   async function load() {
     const [b, v] = await Promise.all([
@@ -28,17 +31,42 @@ export default function BudgetPage() {
 
   useEffect(() => { load(); }, []);
 
-  async function addItem(e: React.FormEvent) {
+  function startAdd() {
+    setForm(emptyForm);
+    setEditingId(null);
+    setShowForm(true);
+  }
+
+  function startEdit(i: BudgetItem) {
+    setForm({
+      category: i.category,
+      item_name: i.item_name,
+      estimated_cost: String(i.estimated_cost),
+      actual_cost: i.actual_cost != null ? String(i.actual_cost) : '',
+      paid_amount: i.paid_amount != null ? String(i.paid_amount) : '',
+      vendor_id: i.vendor_id || '',
+      notes: i.notes || '',
+    });
+    setEditingId(i.id);
+    setShowForm(true);
+  }
+
+  async function saveItem(e: React.FormEvent) {
     e.preventDefault();
-    await supabase.from('budget_items').insert([{
+    const payload = {
       ...form,
       estimated_cost: Number(form.estimated_cost) || 0,
       actual_cost: form.actual_cost ? Number(form.actual_cost) : null,
       paid_amount: form.paid_amount ? Number(form.paid_amount) : 0,
       vendor_id: form.vendor_id || null,
-    }]);
-    setForm({ category: CATEGORIES[0], item_name: '', estimated_cost: '', actual_cost: '', paid_amount: '', vendor_id: '', notes: '' });
+    };
+    if (editingId) {
+      await supabase.from('budget_items').update(payload).eq('id', editingId);
+    } else {
+      await supabase.from('budget_items').insert([payload]);
+    }
     setShowForm(false);
+    setEditingId(null);
     load();
   }
 
@@ -56,7 +84,7 @@ export default function BudgetPage() {
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-serif text-2xl text-maroon">Budget</h1>
-        <button onClick={() => setShowForm(!showForm)} className="bg-maroon text-paper rounded px-3 py-1.5 text-sm">
+        <button onClick={() => (showForm ? setShowForm(false) : startAdd())} className="bg-maroon text-paper rounded px-3 py-1.5 text-sm">
           {showForm ? 'Cancel' : '+ Add item'}
         </button>
       </div>
@@ -77,27 +105,27 @@ export default function BudgetPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={addItem} className="temple-card p-4 mb-5 space-y-2 mt-4">
+        <form onSubmit={saveItem} className="temple-card p-4 mb-5 space-y-2 mt-4">
           <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2">
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
           <input required placeholder="Item name" value={form.item_name} onChange={(e) => setForm({ ...form, item_name: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2" />
           <div className="grid grid-cols-3 gap-2">
-            <input placeholder="Estimated ₹" type="number" value={form.estimated_cost} onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })} className="border border-gold/40 rounded px-3 py-2" />
-            <input placeholder="Actual ₹" type="number" value={form.actual_cost} onChange={(e) => setForm({ ...form, actual_cost: e.target.value })} className="border border-gold/40 rounded px-3 py-2" />
-            <input placeholder="Paid ₹" type="number" value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} className="border border-gold/40 rounded px-3 py-2" />
+            <input placeholder="Estimated" type="number" value={form.estimated_cost} onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })} className="border border-gold/40 rounded px-3 py-2" />
+            <input placeholder="Actual" type="number" value={form.actual_cost} onChange={(e) => setForm({ ...form, actual_cost: e.target.value })} className="border border-gold/40 rounded px-3 py-2" />
+            <input placeholder="Paid" type="number" value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} className="border border-gold/40 rounded px-3 py-2" />
           </div>
           <select value={form.vendor_id} onChange={(e) => setForm({ ...form, vendor_id: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2">
-            <option value="">Link a vendor (optional)…</option>
+            <option value="">Link a vendor (optional)...</option>
             {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>
           <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2" />
-          <button className="bg-leaf text-white rounded px-4 py-2 text-sm">Save</button>
+          <button className="bg-leaf text-white rounded px-4 py-2 text-sm">{editingId ? 'Save changes' : 'Save'}</button>
         </form>
       )}
 
       {loading ? (
-        <p className="text-ink/50">Loading…</p>
+        <p className="text-ink/50">Loading...</p>
       ) : items.length === 0 ? (
         <p className="text-ink/50">No budget items yet.</p>
       ) : (
@@ -105,15 +133,18 @@ export default function BudgetPage() {
           {items.map((i) => (
             <div key={i.id} className="temple-card p-3 mt-3 flex justify-between items-start">
               <div>
-                <p className="font-medium">{i.item_name} <span className="text-xs text-ink/50">· {i.category}</span></p>
+                <p className="font-medium">{i.item_name} <span className="text-xs text-ink/50">- {i.category}</span></p>
                 <p className="text-xs text-ink/50 mt-1">
                   Est. {fmt(i.estimated_cost)}
-                  {i.actual_cost != null && ` · Actual ${fmt(i.actual_cost)}`}
-                  {i.paid_amount ? ` · Paid ${fmt(i.paid_amount)}` : ''}
+                  {i.actual_cost != null && ` - Actual ${fmt(i.actual_cost)}`}
+                  {i.paid_amount ? ` - Paid ${fmt(i.paid_amount)}` : ''}
                 </p>
                 {i.notes && <p className="text-xs text-ink/50 italic mt-1">{i.notes}</p>}
               </div>
-              <button onClick={() => remove(i.id)} className="text-kumkum text-xs">Remove</button>
+              <div className="flex gap-3">
+                <button onClick={() => startEdit(i)} className="text-gold text-xs">Edit</button>
+                <button onClick={() => remove(i.id)} className="text-kumkum text-xs">Remove</button>
+              </div>
             </div>
           ))}
         </div>
