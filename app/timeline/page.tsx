@@ -4,15 +4,18 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { WeddingEvent, TeamMember } from '@/lib/types';
 
+const emptyForm = {
+  name: '', event_date: '', start_time: '', end_time: '', location: '', responsible: '', description: '',
+};
+
 export default function TimelinePage() {
   const supabase = createClient();
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    name: '', event_date: '', start_time: '', end_time: '', location: '', responsible: '', description: '',
-  });
+  const [form, setForm] = useState(emptyForm);
 
   async function load() {
     const [e, t] = await Promise.all([
@@ -26,16 +29,41 @@ export default function TimelinePage() {
 
   useEffect(() => { load(); }, []);
 
-  async function addEvent(e: React.FormEvent) {
+  function startAdd() {
+    setForm(emptyForm);
+    setEditingId(null);
+    setShowForm(true);
+  }
+
+  function startEdit(ev: WeddingEvent) {
+    setForm({
+      name: ev.name,
+      event_date: ev.event_date,
+      start_time: ev.start_time || '',
+      end_time: ev.end_time || '',
+      location: ev.location || '',
+      responsible: ev.responsible || '',
+      description: ev.description || '',
+    });
+    setEditingId(ev.id);
+    setShowForm(true);
+  }
+
+  async function saveEvent(e: React.FormEvent) {
     e.preventDefault();
-    await supabase.from('events').insert([{
+    const payload = {
       ...form,
       start_time: form.start_time || null,
       end_time: form.end_time || null,
       responsible: form.responsible || null,
-    }]);
-    setForm({ name: '', event_date: '', start_time: '', end_time: '', location: '', responsible: '', description: '' });
+    };
+    if (editingId) {
+      await supabase.from('events').update(payload).eq('id', editingId);
+    } else {
+      await supabase.from('events').insert([payload]);
+    }
     setShowForm(false);
+    setEditingId(null);
     load();
   }
 
@@ -55,14 +83,14 @@ export default function TimelinePage() {
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-serif text-2xl text-maroon">Timeline</h1>
-        <button onClick={() => setShowForm(!showForm)} className="bg-maroon text-paper rounded px-3 py-1.5 text-sm">
+        <button onClick={() => (showForm ? setShowForm(false) : startAdd())} className="bg-maroon text-paper rounded px-3 py-1.5 text-sm">
           {showForm ? 'Cancel' : '+ Add event'}
         </button>
       </div>
       <p className="text-sm text-ink/60 mb-4">The day-by-day schedule, ritual by ritual.</p>
 
       {showForm && (
-        <form onSubmit={addEvent} className="temple-card p-4 mb-5 space-y-2 mt-4">
+        <form onSubmit={saveEvent} className="temple-card p-4 mb-5 space-y-2 mt-4">
           <input required placeholder="Event name (e.g. Snathakam)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2" />
           <input required type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2" />
           <div className="grid grid-cols-2 gap-2">
@@ -71,16 +99,16 @@ export default function TimelinePage() {
           </div>
           <input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2" />
           <select value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2">
-            <option value="">Responsible person…</option>
+            <option value="">Responsible person...</option>
             {team.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           <textarea placeholder="Notes" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full border border-gold/40 rounded px-3 py-2" />
-          <button className="bg-leaf text-white rounded px-4 py-2 text-sm">Save</button>
+          <button className="bg-leaf text-white rounded px-4 py-2 text-sm">{editingId ? 'Save changes' : 'Save'}</button>
         </form>
       )}
 
       {loading ? (
-        <p className="text-ink/50">Loading…</p>
+        <p className="text-ink/50">Loading...</p>
       ) : Object.keys(grouped).length === 0 ? (
         <p className="text-ink/50">No events added yet.</p>
       ) : (
@@ -93,12 +121,15 @@ export default function TimelinePage() {
               {evs.map((ev) => (
                 <div key={ev.id} className="temple-card p-3 mt-3 flex justify-between items-start">
                   <div>
-                    <p className="font-medium">{ev.name} {ev.start_time && <span className="text-xs text-ink/50">· {ev.start_time.slice(0,5)}{ev.end_time && `–${ev.end_time.slice(0,5)}`}</span>}</p>
+                    <p className="font-medium">{ev.name} {ev.start_time && <span className="text-xs text-ink/50">- {ev.start_time.slice(0,5)}{ev.end_time && `-${ev.end_time.slice(0,5)}`}</span>}</p>
                     {ev.location && <p className="text-xs text-ink/50">{ev.location}</p>}
                     {teamName(ev.responsible) && <p className="text-xs text-ink/50">In charge: {teamName(ev.responsible)}</p>}
                     {ev.description && <p className="text-xs text-ink/50 italic mt-1">{ev.description}</p>}
                   </div>
-                  <button onClick={() => remove(ev.id)} className="text-kumkum text-xs">Remove</button>
+                  <div className="flex gap-3">
+                    <button onClick={() => startEdit(ev)} className="text-gold text-xs">Edit</button>
+                    <button onClick={() => remove(ev.id)} className="text-kumkum text-xs">Remove</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -107,4 +138,4 @@ export default function TimelinePage() {
       )}
     </div>
   );
-      }
+}
