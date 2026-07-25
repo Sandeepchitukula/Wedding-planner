@@ -25,7 +25,26 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    async function handleAuthRedirect() {
+      const params = new URLSearchParams(window.location.search);
+      const tokenHash = params.get('token_hash');
+      const type = params.get('type');
+      const code = params.get('code');
+
+      if (tokenHash && type) {
+        await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any });
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (code) {
+        await supabase.auth.exchangeCodeForSession(code);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+    }
+
+    handleAuthRedirect();
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => listener.subscription.unsubscribe();
   }, []);
